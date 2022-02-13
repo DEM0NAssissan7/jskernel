@@ -3,7 +3,6 @@ var monitorFramerate = 60;
 var showFPS = true;
 var enableScheduler = true;
 
-
 //System Performance Indicators
 let latencyCalculationBufferSize = 24;
 function getLatency() {
@@ -30,7 +29,6 @@ function updatePerformanceIndicators() {
 //Process management
 var targetLatency = 1000 / monitorFramerate;
 var trueTargetLatency = 1 / monitorFramerate;
-
 function Process(command, priority, name, processesArrayLength) {
     this.command = command;
     this.PID = processesArrayLength;
@@ -63,7 +61,6 @@ Process.prototype.update = function (targetToPriorityConversion) {
             var timeBefore = millis();
             this.command();
             this.frametime = millis() - timeBefore;
-
             this.cycleCount -= this.execRatio;
 
             //Scheduler
