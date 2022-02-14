@@ -49,6 +49,6 @@ function find(processName) {
 function killall(processName) {
     let processNames = find(processName);
     for (let i = 0; i < processNames.length; i++) {
-        kill(processNames[i], true);
+        kill(processNames[i]);
     }
 }

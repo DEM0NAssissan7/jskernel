@@ -3,17 +3,18 @@ var monitorFramerate = 60;
 var showFPS = true;
 var enableScheduler = true;
 
+
 //System Performance Indicators
-let latencyCalculationBufferSize = 24;
+let latencyCalculationBufferSize = 1;//Every x frames, count average FPS
 function getLatency() {
-    let dividedFrameCounter = frameCount % floor(latencyCalculationBufferSize);
+    let dividedFrameCounter = frameCount % (latencyCalculationBufferSize * 2);
     if (dividedFrameCounter === 0) {
         this.frameMarker1 = millis();
     }
-    if (dividedFrameCounter === floor(latencyCalculationBufferSize / 2)) {
+    if (dividedFrameCounter === latencyCalculationBufferSize) {
         this.frameMarker2 = millis();
     }
-    return abs(this.frameMarker1 - this.frameMarker2) / floor(latencyCalculationBufferSize / 2);
+    return abs(this.frameMarker1 - this.frameMarker2) / latencyCalculationBufferSize;
 }
 //Store performance numbers as variables
 var systemLatency = 1000 / monitorFramerate;
@@ -29,6 +30,7 @@ function updatePerformanceIndicators() {
 //Process management
 var targetLatency = 1000 / monitorFramerate;
 var trueTargetLatency = 1 / monitorFramerate;
+
 function Process(command, priority, name, processesArrayLength) {
     this.command = command;
     this.PID = processesArrayLength;
@@ -61,6 +63,7 @@ Process.prototype.update = function (targetToPriorityConversion) {
             var timeBefore = millis();
             this.command();
             this.frametime = millis() - timeBefore;
+
             this.cycleCount -= this.execRatio;
 
             //Scheduler
@@ -76,21 +79,25 @@ Process.prototype.update = function (targetToPriorityConversion) {
 var processes = [];
 function createProcess(command, priority, name, processesArray) {
     let currentProcessesArray = [];
-    if(!processesArray){
+    if (!processesArray) {
         currentProcessesArray = processes;
-    }else{
+    } else {
         currentProcessesArray = processesArray;
     }
     currentProcessesArray.push(new Process(command, priority, name, currentProcessesArray.length));
     currentProcessesArray[0].prioritySum += currentProcessesArray[currentProcessesArray.length - 1].convertedPriority;
 }
-function kill(PID, quiet) {
-    for (let i = 0; i < processes.length; i++) {
-        if (processes[i].PID === PID) {
-            processes.splice(i, 1);
-            if (!quiet) {
-                print("Process " + PID + " killed");
-            }
+function kill(PID, processesArray) {
+    let currentProcessesArray;
+    if (!processesArray) {
+        currentProcessesArray = processes;
+    } else {
+        currentProcessesArray = processesArray;
+    }
+    for (let i = 0; i < currentProcessesArray.length; i++) {
+        if (currentProcessesArray[i].PID === PID) {
+            currentProcessesArray.splice(i, 1);
+            print("Process " + PID + " killed");
         }
     }
 }
@@ -201,7 +208,7 @@ function setup() {
     //Create process example:
     //createProcess(foo,priority);
 }
-function draw(){
+function draw() {
     //Suspend hotkey daemon
     suspendResponseDaemon();
     //Inputs
