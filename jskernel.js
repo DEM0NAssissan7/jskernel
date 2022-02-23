@@ -110,6 +110,7 @@ function kill(PID, processesArray) {
     }
     for (let i = 0; i < currentProcessesArray.length; i++) {
         if (currentProcessesArray[i].PID === PID) {
+            currentProcessesArray[0].prioritySum -= currentProcessesArray[i].priority;
             currentProcessesArray.splice(i, 1);
             print("Process " + PID + " killed");
         }
