@@ -1,34 +1,34 @@
-function largeProcessorStressTest(){
-  for(var i = 0; i < 2; i++){
-    fill(255,100,100);
-    rect(0,height-400,400,400)
+function largeProcessorStressTest() {
+  for (var i = 0; i < 2; i++) {
+    fill(255, 100, 100);
+    rect(0, height - 400, 400, 400)
   }
 }
 
-function recurseProcess(){
+function recurseProcess() {
 }
 
-function jskernelStresstest(){
+function jskernelStresstest() {
   print("Stressing process manager and scheduler");
-  createProcess(function(){createProcess(function(){createProcess(recurseProcess,"stresstest")},"stresstest")},"stresstest");
+  createProcess(function () { createProcess(function () { createProcess(recurseProcess, "stresstest") }, "stresstest") }, "stresstest");
 }
-function overhead(){
+function overhead() {
   let stresstestProcesses = [];
   let processCount = 1000000;
   let beforeCreationTime = millis();
-  for(var i = 0; i < processCount; i++){
-    createProcess(recurseProcess,"stresstest",true,stresstestProcesses);
+  for (var i = 0; i < processCount; i++) {
+    createProcess(recurseProcess, "stresstest", true, stresstestProcesses);
   }
   let creationTime = millis() - beforeCreationTime;
-  
+
   print("Processes have been created");
   print("Kernel overhead for creating " + processCount + " processes (in ms): " + creationTime);
   print("Kernel overhead for creating 1 processes (in ms): " + (creationTime / processCount));
   print("")
-  
+
   let updateCount = 30;
   let totalUpdateTimes = 0;
-  for(var i = 0; i < updateCount; i++){
+  for (var i = 0; i < updateCount; i++) {
     let beforeUpdateTime = millis();
     updateProcesses(stresstestProcesses);
     totalUpdateTimes += millis() - beforeUpdateTime;
@@ -41,26 +41,24 @@ function overhead(){
   print("Kernel overhead for running 1 processes (in ms): " + (updateTime / stresstestProcesses.length));
 }
 
-function capacity(){
+function capacity() {
   print("Testing kernel capacity");
-  //Around every 350,000 processes, a performance hit is noticable
-  //(on my machine)
+  //Around 10,000,000 processes, a performance hit is noticable
+  //(on my laptop)
   let beforeTime = millis();
-  for(let i = 0; i < 350000; i++){
-    createProcess(recurseProcess,"stresstest");
+  for (let i = 0; i < 10000000; i++) {
+    createProcess(recurseProcess, "stresstest");
   }
   print("processes have been created");
 
 }
 
-function ultistress(){
+function ultistress() {
   print("Testing ultimate kernel capacity");
-  //Around every 350,000 processes, a performance hit is noticable
-  //(on my machine)
   let processCount = 10000000;
   let beforeTime = millis();
-  for(let i = 0; i < processCount; i++){
-    createProcess(recurseProcess,"stresstest");
+  for (let i = 0; i < processCount; i++) {
+    createProcess(recurseProcess, "stresstest");
   }
   let creationTime = millis() - beforeTime;
   print("processes have been created");
@@ -68,10 +66,10 @@ function ultistress(){
 
 }
 
-function schedulerResillience(){
+function schedulerResillience() {
   print("Stressing scheduler with huge processes");
-  for(let i = 0; i < 1000; i++){
-    createProcess(largeProcessorStressTest,"stresstest");
+  for (let i = 0; i < 1000; i++) {
+    createProcess(largeProcessorStressTest, "stresstest");
   }
 }
 
@@ -81,7 +79,7 @@ function schedulerResillience(){
 
 
 
-function testSuspend(){
+function testSuspend() {
   print("Testing suspend functionality");
   suspend(3);
   resume(3);
@@ -89,45 +87,45 @@ function testSuspend(){
   resumeSystem(processes);
 }
 
-function testExtraProcessFunctionality(){
+function testExtraProcessFunctionality() {
   print("Testing extra process functionality");
   find("TTY");
   PIDfind(4);
   totalFrametimes(processes);
 }
 
-function testInfoFunctions(){
+function testInfoFunctions() {
   print("Testing process information functions");
   info(3);
-  info(3,true);
+  info(3, true);
 }
 
-function testKill(){
+function testKill() {
   print("Testing kill functionality");
-  createProcess(jskernelStresstest,"Killall Test");
+  createProcess(jskernelStresstest, "Killall Test");
   killall("Killall Test");
   kill(5);
 }
 
-function testInputs(){
+function testInputs() {
   print("Testing input functionality");
   print("MouseX" + mouseArray.x);
   print("MouseY" + mouseArray.y);
   print("VectorX" + mouseArray.vectorX);
   print("VectorY" + mouseArray.vectorY);
-  
+
   print("")
 }
 
-function stressReset(){
+function stressReset() {
   print("Clearing processes.");
   processes = [];
   print("Reinitializing TTY")
-  createProcess(updateTTY,"TTY",true);
-  createProcess(drawTTY,"TTY");
+  createProcess(updateTTY, "TTY", 0);
+  createProcess(drawTTY, "TTY", 1);
 }
 
-function stress(){
+function stress() {
   let testFailed = false;
   try {
     schedulerResillience();
@@ -178,10 +176,10 @@ function stress(){
     console.error(error);
     testFailed = true;
   }
-  
-  if(testFailed){
+
+  if (testFailed) {
     console.error("The jskernel stress test FAILED.");
-  }else{
+  } else {
     print("The jskernel stress test finished with no error!");
   }
   print("Run -stressReset- to reset system back to original state.");

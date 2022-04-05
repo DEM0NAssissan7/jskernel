@@ -3,10 +3,11 @@ var monitorFramerate = 60;
 var showFPS = true;
 var disableScheduler = false;
 var trackPerformance = false;
+var limitFps = false;
 
 
 //System Performance Indicators
-let latencyCalculationBufferSize = 1;//Every x frames, count average FPS
+let latencyCalculationBufferSize = monitorFramerate/10;//Every x frames, count average FPS
 function getLatency() {
     let dividedFrameCounter = frameCount % (latencyCalculationBufferSize * 2);
     if (dividedFrameCounter === 0) {
@@ -22,7 +23,7 @@ var systemLatency = 1000 / monitorFramerate;
 var systemFps = 1000 / monitorFramerate;
 //Function to update performance variables
 function updatePerformanceIndicators() {
-    if (getLatency()) {
+    if (getLatency()){
         systemLatency = getLatency();
         systemFps = 1000 / systemLatency;
     }
@@ -261,7 +262,11 @@ function fpsCounter() {
 
 //Configure and run the kernel
 function setup() {
-    frameRate(monitorFramerate);
+    if(limitFps === false){
+        frameRate(Infinity);
+    }else{
+        frameRate(monitorFramerate);
+    }
     createCanvas(windowWidth - 20, windowHeight - 20)
     //Create process example:
     //createProcess(command,name,priority,processArray)
