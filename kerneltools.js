@@ -24,7 +24,7 @@ function totalFrametimes(processesArray) {
     return totalFrametime;
 }
 function PIDfind(PID) {
-    let foundProcess = [];
+    let foundProcess;
     for (let i = 0; i < processes.length; i++) {
         let currentProcess = processes[i];
         if (PID === currentProcess.PID) {

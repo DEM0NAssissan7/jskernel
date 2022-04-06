@@ -19,6 +19,8 @@ function getLatency() {
     return abs(this.frameMarker1 - this.frameMarker2) / latencyCalculationBufferSize;
 }
 //Store performance numbers as variables
+var targetLatency = 1000 / monitorFramerate;
+var trueTargetLatency = 1 / monitorFramerate;
 var systemLatency = 1000 / monitorFramerate;
 var systemFps = 1000 / monitorFramerate;
 //Function to update performance variables
@@ -28,16 +30,28 @@ function updatePerformanceIndicators() {
         systemFps = 1000 / systemLatency;
     }
 }
+//Schedulers
+function schedulerPrioritySystemPerformance(self){
+    return (systemLatency * self.processesArray.length * this.priority) / (targetLatency * self.processesArray[0].prioritySum);
+    // R = (L/t)(y/P)*p
+}
+function schedulerPriorityProcessPerformance(self){
+    if(self.trackPerformance === false){
+        self.trackPerformance = true;
+        return 1;
+    }
+    return (self.frametime * self.processesArray.length * this.priority) / (targetLatency * self.processesArray[0].prioritySum);
+}
 
 //Process management
-var targetLatency = 1000 / monitorFramerate;
-var trueTargetLatency = 1 / monitorFramerate;
-function Process(command, name, priority, processesArrayLength) {
+function Process(command, name, priority, processesArray, scheduler) {
     //Essential process traits
     this.command = command;
-    this.PID = processesArrayLength;
+    this.processesArray = processesArray;
+    this.PID = processesArray.length;
     this.processName = name;
-    //Frametime
+    //Performance Tracking
+    this.trackPerformance = trackPerformance;
     this.frametime = 0;
     //Execution Ratio
     this.execRatio = 1;
@@ -47,6 +61,7 @@ function Process(command, name, priority, processesArrayLength) {
     this.manualSuspend = false;
     //Scheduler
     this.disableScheduler = disableScheduler;
+    this.scheduler = scheduler;
     //Priority
     this.prioritySum = 0;
     if (priority === 0) {
@@ -54,13 +69,13 @@ function Process(command, name, priority, processesArrayLength) {
     }
     this.priority = priority;
 }
-Process.prototype.update = function (systemToTargetPriorityRatio) {
+Process.prototype.update = function () {
     if (this.suspend === false && this.manualSuspend === false) {
         this.cycleCount++;
         if (this.cycleCount > this.execRatio) {
             this.cycleCount -= this.execRatio;
             //Frametime
-            if (trackPerformance === false) {
+            if (this.trackPerformance === false) {
                 this.command();
             } else {
                 let timeBefore = Date.now();
@@ -69,12 +84,10 @@ Process.prototype.update = function (systemToTargetPriorityRatio) {
             }
             //Scheduler
             if (this.disableScheduler === false) {
-                if (systemToTargetPriorityRatio * this.priority < 1) {
+                this.execRatio = this.scheduler(this);
+                if(this.execRatio < 1){
                     this.execRatio = 1;
-                } else {
-                    this.execRatio = systemToTargetPriorityRatio * this.priority;
                 }
-                // R = (L/t)(y/P)*p
             }
         }
     }
@@ -82,7 +95,7 @@ Process.prototype.update = function (systemToTargetPriorityRatio) {
 
 //Process manager
 var processes = [];
-function createProcess(command, name, priority, processesArray) {
+function createProcess(command, name, priority, processesArray, scheduler) {
     //Default process array
     let currentProcessesArray;
     if (!processesArray) {
@@ -99,7 +112,14 @@ function createProcess(command, name, priority, processesArray) {
     } else if (priority === 0) {
         currentPriority = 0;
     }
-    currentProcessesArray.push(new Process(command, name, currentPriority, currentProcessesArray.length));
+    //Scheduler
+    let currentScheduler;
+    if(scheduler === undefined){
+        currentScheduler = schedulerPrioritySystemPerformance;
+    }else{
+        currentScheduler = scheduler;
+    }
+    currentProcessesArray.push(new Process(command, name, currentPriority, currentProcessesArray, currentScheduler));
     currentProcessesArray[0].prioritySum += currentPriority;
 }
 function kill(PID, processesArray) {
@@ -113,16 +133,15 @@ function kill(PID, processesArray) {
         if (currentProcessesArray[i].PID === PID) {
             currentProcessesArray[0].prioritySum -= currentProcessesArray[i].priority;
             currentProcessesArray.splice(i, 1);
-            print("Process " + PID + " killed");
+            console.warn("Process " + PID + " killed");
         }
     }
 }
 let systemError = [];
 function updateProcesses(processesArray) {
-    let systemToTargetPriorityRatio = (systemLatency * processesArray.length) / (targetLatency * processesArray[0].prioritySum);
     for (let i = 0; i < processesArray.length; i++) {
         try {
-            processesArray[i].update(systemToTargetPriorityRatio);
+            processesArray[i].update();
         } catch (error) {
             console.error("Process with PID " + processesArray[i].PID + " encountered an error.");
             console.error(error);
@@ -134,7 +153,7 @@ function suspend(PID) {
     for (let i = 0; i < processes.length; i++) {
         if (processes[i].PID === PID) {
             processes[i].manualSuspend = true;
-            print("Process " + PID + " suspended");
+            console.warn("Process " + PID + " suspended");
         }
     }
 }
@@ -143,7 +162,7 @@ function resume(PID) {
         if (processes[i].PID === PID) {
             processes[i].manualSuspend = false;
             processes[i].suspend = false;
-            print("Process " + PID + " resumed");
+            console.warn("Process " + PID + " resumed");
         }
     }
 }
@@ -176,13 +195,24 @@ function suspendSystem(processesArray) {
     for (let i = 0; i < processesArray.length; i++) {
         processesArray[i].suspend = true;
     }
-    print("System has been suspended.");
+    console.warn("System has been suspended.");
 }
 function resumeSystem(processesArray) {
     for (let i = 0; i < processesArray.length; i++) {
         processesArray[i].suspend = false;
     }
-    print("System has been resumed.");
+    console.warn("System has been resumed.");
+}
+
+//Function to return a reset copy of the kernel
+function resetSystem(processesArray){
+    let processesBuffer = [];
+    for(let i = 0; i < processesArray.length; i++){
+        let currentProcess = processesArray[i];
+        createProcess(currentProcess.command, currentProcess.processName, currentProcess.priority, processesBuffer, currentProcess.scheduler);
+    }
+    setup();
+    return processesBuffer;
 }
 
 //Error screen daemon
@@ -260,6 +290,10 @@ function fpsCounter() {
     }
 }
 
+//Create process example:
+//createProcess(command,name,priority,processArray)
+//createProcess(foo,"foo",1,processes);
+
 //Configure and run the kernel
 function setup() {
     if(limitFps === false){
@@ -268,9 +302,6 @@ function setup() {
         frameRate(monitorFramerate);
     }
     createCanvas(windowWidth - 20, windowHeight - 20)
-    //Create process example:
-    //createProcess(command,name,priority,processArray)
-    //createProcess(foo,"foo",1,processes);
 }
 function draw() {
     //Error screen daemon

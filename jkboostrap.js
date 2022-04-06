@@ -6,16 +6,24 @@ function createScriptElement(fileName) {
   return script;
 }
 function kbInit() {
+  let loadingTitle = document.createTextNode("Loading files...");
+  document.head.append(loadingTitle);
   setTimeout(function () {
     for (let i = 0; i < loadedFiles.length; i++) {
-      setTimeout(function () {
+      setTimeout(function(){
         let childElement = createScriptElement(loadedFiles[i]);
-        document.head.appendChild(childElement);
-        scriptElements.push(childElement);
-        console.log("File " + loadedFiles[i] + " has been loaded.");
-      }, 10);
+        try {
+          document.head.appendChild(childElement);
+          scriptElements.push(childElement);
+        } catch (error) {
+          console.error("File " + loadedFiles[i] + " encountered an error while loading.");
+          console.error(error);
+        } finally {
+          console.log("jkbootstrap: Loaded " + loadedFiles[i]);
+        }
+      },(i+1)*100);
     }
-  }, 100);
+  },10);
 }
 function kbShutdown() {
   for (let i = 0; i < scriptElements.length; i++) {
@@ -26,6 +34,11 @@ function kbShutdown() {
 function kbLoad(fileName) {
   document.head.appendChild(createScriptElement(fileName));
   console.log("File " + fileName + " has been manually loaded.");
+}
+function kbUpdate(fileName){
+  document.head.removeChild(createScriptElement(fileName));
+  document.head.appendChild(createScriptElement(fileName));
+  console.log("File " + fileName + " has been updated.")
 }
 function kbRestart() {
   for (let i = 0; i < scriptElements.length; i++) {
