@@ -204,7 +204,7 @@ function resumeSystem(processesArray) {
     console.warn("System has been resumed.");
 }
 
-//Function to return a reset copy of the kernel
+//Kernel reset
 function resetSystem(processesArray){
     let processesBuffer = [];
     for(let i = 0; i < processesArray.length; i++){
@@ -301,7 +301,7 @@ function setup() {
     }else{
         frameRate(monitorFramerate);
     }
-    createCanvas(windowWidth - 20, windowHeight - 20)
+    createCanvas(windowWidth - 20, windowHeight - 20);
 }
 function draw() {
     //Error screen daemon

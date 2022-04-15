@@ -52,3 +52,6 @@ function killall(processName) {
         kill(processNames[i]);
     }
 }
+function reloadKernel(){
+    processes = resetSystem(processes);
+}
