@@ -291,8 +291,8 @@ function fpsCounter() {
 }
 
 //Create process example:
-//createProcess(command,name,priority,processArray)
-//createProcess(foo,"foo",1,processes);
+//createProcess(command, name, priority, processArray);
+//createProcess(foo, "foo", 1, processes);
 
 //Configure and run the kernel
 function setup() {
