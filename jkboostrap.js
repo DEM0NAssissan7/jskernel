@@ -21,7 +21,7 @@ function kbInit() {
         } finally {
           console.log("jkbootstrap: Loaded " + loadedFiles[i]);
         }
-      },(i+1)*100);
+      },(i+1)*50);
     }
   },10);
 }
