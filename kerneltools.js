@@ -54,4 +54,7 @@ function killall(processName) {
 }
 function reloadKernel(){
     processes = resetSystem(processes);
+    if(processes){
+        console.log("Kernel successfully reloaded.");
+    }
 }
