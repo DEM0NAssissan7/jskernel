@@ -22,7 +22,10 @@ TTY.prototype.update = function () {
       try {
         var stringToCommand = eval(this.textBuffer);
         if (stringToCommand !== undefined) {
-          this.textArray.push(stringToCommand.toString().replace(/[^\x20-\x7E]/gmi, ""));
+          stringToCommandToString = stringToCommand.toString();
+          for(var i = 0; i < stringToCommandToString.length; i++){
+            this.textArray.push(stringToCommandToString.replace(/[^\x20-\x7E]/gmi, ""));
+          }
         }
       } catch (error) {
         this.textArray.push(error);
@@ -58,7 +61,7 @@ TTY.prototype.update = function () {
       this.keyPressed = false;
     }
     for (var i in keyboardArray) {
-      if (keyboardArray[keyCode] && key !== "Enter" && key !== "Backspace" && key !== "ArrowUp" && key !== "ArrowDown" && key !== "Alt" && key !== "Shift") {
+      if (keyboardArray[keyCode] && key !== "Enter" && key !== "Backspace" && key !== "ArrowUp" && key !== "ArrowDown" && key !== "Alt" && key !== "Shift" && key !== "Tab" && key !== "Control") {
         this.textBuffer += key;
         keyboardArray[keyCode] = false;
       }
@@ -106,4 +109,4 @@ function drawTTY() {
 }
 
 createProcess(updateTTY, "TTY", 0);
-createProcess(drawTTY, "TTY"), 1;
+createProcess(drawTTY, "TTY", 1);
