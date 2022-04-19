@@ -43,7 +43,7 @@ function schedulerPriorityProcessPerformance(self){
     return (self.frametime * self.processesArray.length * this.priority) / (targetLatency * self.processesArray[0].prioritySum);
 }
 
-//Process management
+//Process function
 function Process(command, name, priority, processesArray, scheduler) {
     //Essential process traits
     this.command = command;
