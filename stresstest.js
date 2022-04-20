@@ -24,7 +24,6 @@ function overhead() {
   print("Processes have been created");
   print("Kernel overhead for creating " + processCount + " processes (in ms): " + creationTime);
   print("Kernel overhead for creating 1 processes (in ms): " + (creationTime / processCount));
-  print("")
 
   let updateCount = 30;
   let totalUpdateTimes = 0;
@@ -35,7 +34,6 @@ function overhead() {
   }
   let updateTime = totalUpdateTimes / updateCount;
 
-  print("");
   print("Processes have ran.");
   print("Average kernel overhead for running " + stresstestProcesses.length + " processes (in ms): " + updateTime);
   print("Kernel overhead for running 1 processes (in ms): " + (updateTime / stresstestProcesses.length));

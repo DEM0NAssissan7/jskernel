@@ -1,19 +1,29 @@
 function TTY() {
 
-  this.prompt = "[TTY]$ ";
+  this.prompt = "[jsterm]$ ";
   this.textArray = [];
   this.promptArray = [];
   this.textLine = 0;
   this.textBuffer = [];
   this.keyPressed = false;
   this.textOrder = 0;
-  //  this.textBuffer += this.prompt
 }
 
 TTY.prototype.update = function () {
   //Command line basic commands
-  this.clearText = function () {
-    textArray.splice(0, this.textArray.length - 1);
+  //Commandline functions
+  var self = this;
+  function clr() {
+    self.textArray = [];
+  }
+  function printout(obj) {
+    if (obj[0]) {
+      for (var i in obj) {
+        self.textArray.push(obj[i]);
+      }
+    } else {
+      self.textArray.push(obj);
+    }
   }
   if (keyboardArray[13] && !this.keyPressed) {
     this.textArray.push(this.textBuffer);
@@ -71,9 +81,10 @@ TTY.prototype.update = function () {
 
 TTY.prototype.draw = function () {
   noStroke();
-  fill(0);
+  fill(0, 0, 0, 100);
   rect(0, 0, width, height);
   fill(255, 255, 255);
+  textSize(12);
   for (var i in this.textArray) {
     let currentPrompt = this.promptArray[i];
     if (currentPrompt === undefined) {
@@ -86,27 +97,17 @@ TTY.prototype.draw = function () {
 
 var ttySystem = new TTY;
 
-//Commandline functions
-function clr() {
-  ttySystem.textArray = [];
-}
-
-function printout(obj) {
-  if (obj[0]) {
-    for (var i in obj) {
-      ttySystem.textArray.push(obj[i]);
-    }
-  } else {
-    ttySystem.textArray.push(obj);
-  }
-}
-
 function updateTTY() {
   ttySystem.update();
 }
 function drawTTY() {
   ttySystem.draw();
 }
+try{
+  if(stress){
+    createProcess(updateTTY, "TTY", 0);
+    createProcess(drawTTY, "TTY", 1);
+  }
+} catch(error){
 
-createProcess(updateTTY, "TTY", 0);
-createProcess(drawTTY, "TTY", 1);
+}

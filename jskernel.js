@@ -304,8 +304,6 @@ function setup() {
     createCanvas(windowWidth - 20, windowHeight - 20);
 }
 function draw() {
-    //Error screen daemon
-    errorScreenDaemon();
     //Suspend hotkey daemon
     suspendResponseDaemon();
     //Inputs
@@ -315,6 +313,8 @@ function draw() {
     updatePerformanceIndicators();
     //Update processes
     updateProcesses(processes);
+    //Error screen daemon
+    errorScreenDaemon();
     //FPS display
     fpsCounter();
 }
