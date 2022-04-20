@@ -108,6 +108,4 @@ try{
     createProcess(updateTTY, "TTY", 0);
     createProcess(drawTTY, "TTY", 1);
   }
-} catch(error){
-
-}
+} catch(error){}
