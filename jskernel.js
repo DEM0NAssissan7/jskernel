@@ -1,10 +1,10 @@
 //Option Variables
 var monitorFramerate = 60;
 var showFPS = false;
-var disableScheduler = true;
+var disableScheduler = false;
 var trackPerformance = false;
 var limitFps = false;
-var defaultProcessGroupName = "default";
+var idleSuspend = true;
 
 
 //System Performance Indicators
@@ -206,19 +206,16 @@ function updateMouse() {
 }
 var keyboardKeyArray = [];
 var keyboardArray = [];
-function updateKeyboard() {
-    if(!keyIsPressed){
-        keyboardKeyArray = [];
-    }
-}
-keyPressed = function () {
+function keyPressed () {
     keyboardArray[keyCode] = true;
     keyboardKeyArray.push(key);
 };
-keyReleased = function () {
+function keyReleased () {
     keyboardArray[keyCode] = false;
-    keyboardKeyArray.splice(0,1);
 };
+function keyboardConfigurationDaemon() {
+    keyboardKeyArray = [];
+}
 
 //System suspend
 function suspendSystem(processesArray) {
@@ -289,19 +286,21 @@ function errorScreenDaemon() {
 var mouseInactivityTimer = 0;
 function suspendResponseDaemon() {
     //Inactivity suspend
-    if(mouseArray.vectorX === 0 && mouseArray.vectorY === 0 && !keyIsPressed && !mouseIsPressed){
-        mouseInactivityTimer += systemLatency/1000;
-    }
-    if(focused){
-        mouseInactivityTimer = 0;
-        if(this.inactive === true){
-            resumeSystem(processes);
-            this.inactive = undefined;
+    if(idleSuspend === true){
+        if(mouseArray.vectorX === 0 && mouseArray.vectorY === 0 && !keyIsPressed && !mouseIsPressed){
+            mouseInactivityTimer += systemLatency/1000;
         }
-    }
-    if(mouseInactivityTimer > 30 && this.inactive === undefined || !focused && this.inactive === undefined){
-        suspendSystem(processes);
-        this.inactive = true;
+        if(focused){
+            mouseInactivityTimer = 0;
+            if(this.inactive === true){
+                resumeSystem(processes);
+                this.inactive = undefined;
+            }
+        }
+        if(mouseInactivityTimer > 30 && this.inactive === undefined || !focused && this.inactive === undefined){
+            suspendSystem(processes);
+            this.inactive = true;
+        }
     }
     //Suspend keyboard shortcut
     if (keyboardArray[192] && this.suspended === undefined) {
@@ -353,8 +352,7 @@ addProcessGroup(processesGroup);
 function draw() {
     //Suspend hotkey daemon
     suspendResponseDaemon();
-    //Inputs
-    updateKeyboard();
+    //Mouse input
     updateMouse();
     //Update performance numbers
     updatePerformanceIndicators();
@@ -362,6 +360,8 @@ function draw() {
     runStartups(startups);
     //Update processes
     updateSystem();
+    //Run keyboard daemon
+    keyboardConfigurationDaemon();
     //Error screen daemon
     errorScreenDaemon();
     //FPS display

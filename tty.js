@@ -70,10 +70,10 @@ TTY.prototype.update = function () {
     if (!keyIsPressed) {
       this.keyPressed = false;
     }
-    for (var i in keyboardArray) {
-      if (keyboardArray[keyCode] && key !== "Enter" && key !== "Backspace" && key !== "ArrowUp" && key !== "ArrowDown" && key !== "Alt" && key !== "Shift" && key !== "Tab" && key !== "Control") {
-        this.textBuffer += key;
-        keyboardArray[keyCode] = false;
+    for (var i in keyboardKeyArray) {
+      var currentKey = keyboardKeyArray[i]
+      if (currentKey !== "Enter" && currentKey !== "Backspace" && currentKey !== "ArrowUp" && currentKey !== "ArrowDown" && currentKey !== "Alt" && currentKey !== "Shift" && currentKey !== "Tab" && currentKey !== "Control") {
+        this.textBuffer += currentKey;
       }
     }
   }
