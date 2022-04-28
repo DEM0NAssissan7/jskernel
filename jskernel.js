@@ -1,9 +1,10 @@
 //Option Variables
 var monitorFramerate = 60;
-var showFPS = true;
-var disableScheduler = false;
+var showFPS = false;
+var disableScheduler = true;
 var trackPerformance = false;
 var limitFps = false;
+var defaultProcessGroupName = "default";
 
 
 //System Performance Indicators
@@ -11,12 +12,12 @@ let latencyCalculationBufferSize = monitorFramerate/10;//Every x frames, count a
 function getLatency() {
     let dividedFrameCounter = frameCount % (latencyCalculationBufferSize * 2);
     if (dividedFrameCounter === 0) {
-        this.frameMarker1 = millis();
+        this.frameMarker1 = Date.now();
     }
     if (dividedFrameCounter === latencyCalculationBufferSize) {
-        this.frameMarker2 = millis();
+        this.frameMarker2 = Date.now();
     }
-    return abs(this.frameMarker1 - this.frameMarker2) / latencyCalculationBufferSize;
+    return Math.abs(this.frameMarker1 - this.frameMarker2) / latencyCalculationBufferSize;
 }
 //Store performance numbers as variables
 var targetLatency = 1000 / monitorFramerate;
@@ -42,8 +43,12 @@ function schedulerPriorityProcessPerformance(self){
     }
     return (self.frametime * self.processesArray.length * this.priority) / (targetLatency * self.processesArray[0].prioritySum);
 }
+function schedulerSystemPerformance(){
+    return systemLatency/targetLatency;
+}
 
 //Process function
+var processes = [];
 function Process(command, name, priority, processesArray, scheduler) {
     //Essential process traits
     this.command = command;
@@ -62,7 +67,6 @@ function Process(command, name, priority, processesArray, scheduler) {
     //Scheduler
     this.disableScheduler = disableScheduler;
     this.scheduler = scheduler;
-    //Priority
     this.prioritySum = 0;
     if (priority === 0) {
         this.disableScheduler = true;
@@ -93,15 +97,17 @@ Process.prototype.update = function () {
     }
 };
 
-//Process manager
+//Process/groups manager
 var processes = [];
-function createProcess(command, name, priority, processesArray, scheduler) {
-    //Default process array
-    let currentProcessesArray;
-    if (!processesArray) {
-        currentProcessesArray = processes;
+var processesGroup = [];
+var processGroups = [];
+function createProcess(command, name, priority, group, scheduler) {
+    //Default process group
+    let currentProcessesGroup;
+    if (group === undefined) {
+        currentProcessesGroup = processesGroup;
     } else {
-        currentProcessesArray = processesArray;
+        currentProcessesGroup = group;
     }
     //Priority
     let currentPriority = 1;
@@ -119,34 +125,38 @@ function createProcess(command, name, priority, processesArray, scheduler) {
     }else{
         currentScheduler = scheduler;
     }
-    currentProcessesArray.push(new Process(command, name, currentPriority, currentProcessesArray, currentScheduler));
-    currentProcessesArray[0].prioritySum += currentPriority;
+    var process = new Process(command, name, currentPriority, processes, currentScheduler);
+    processes.push(process);
+    processes[0].prioritySum += currentPriority;
+    currentProcessesGroup.push(process);
 }
-function kill(PID, processesArray) {
-    let currentProcessesArray;
-    if (!processesArray) {
-        currentProcessesArray = processes;
-    } else {
-        currentProcessesArray = processesArray;
-    }
-    for (let i = 0; i < currentProcessesArray.length; i++) {
-        if (currentProcessesArray[i].PID === PID) {
-            currentProcessesArray[0].prioritySum -= currentProcessesArray[i].priority;
-            currentProcessesArray.splice(i, 1);
+function kill(PID) {
+    for (let i = 0; i < processes.length; i++) {
+        if (processes[i].PID === PID) {
+            processes[0].prioritySum -= processes[i].priority;
+            processes.splice(i, 1);
             console.warn("Process " + PID + " killed");
         }
     }
 }
+function addProcessGroup(processGroup){
+    processGroups.push(processGroup);
+}
 let systemError = [];
-function updateProcesses(processesArray) {
-    for (let i = 0; i < processesArray.length; i++) {
+function updateProcesses(processGroup) {
+    for (let i = 0; i < processGroup.length; i++) {
         try {
-            processesArray[i].update();
+            processGroup[i].update();
         } catch (error) {
-            console.error("Process with PID " + processesArray[i].PID + " encountered an error.");
+            console.error("Process with PID " + processGroup[i].PID + " encountered an error.");
             console.error(error);
-            systemError = [true, processesArray, i, error];
+            systemError = [true, processGroup[i], error];
         }
+    }
+}
+function updateSystem(){
+    for(var i = 0; i < processGroups.length; i++){
+        updateProcesses(processGroups[i]);
     }
 }
 function suspend(PID) {
@@ -167,6 +177,20 @@ function resume(PID) {
     }
 }
 
+//Startup processes
+var startups = [];
+function createStartup(command){
+    startups.push(function () {command();});
+}
+function runStartups(startupArray){
+    for(var i = 0; i < startupArray.length; i++){
+        if(startupArray[i].started === undefined){
+            startupArray[i]();
+            startupArray[i].started = true;
+        }
+    }
+}
+
 //Input management
 var mouseArray = function () {
     this.x = 0;
@@ -174,21 +198,27 @@ var mouseArray = function () {
     this.vectorX = 0;
     this.vectorY = 0;
 };
-var keyboardArray = [];
-function UpdateMouse() {
+function updateMouse() {
     mouseArray.vectorX = mouseArray.x - mouseX;
     mouseArray.vectorY = mouseArray.y - mouseY;
     mouseArray.x = mouseX;
     mouseArray.y = mouseY;
 }
-function UpdateKeyboard() {
-    keyPressed = function () {
-        keyboardArray[keyCode] = true;
-    };
-    keyReleased = function () {
-        keyboardArray[keyCode] = false;
-    };
+var keyboardKeyArray = [];
+var keyboardArray = [];
+function updateKeyboard() {
+    if(!keyIsPressed){
+        keyboardKeyArray = [];
+    }
 }
+keyPressed = function () {
+    keyboardArray[keyCode] = true;
+    keyboardKeyArray.push(key);
+};
+keyReleased = function () {
+    keyboardArray[keyCode] = false;
+    keyboardKeyArray.splice(0,1);
+};
 
 //System suspend
 function suspendSystem(processesArray) {
@@ -218,19 +248,18 @@ function resetSystem(processesArray){
 //Error screen daemon
 function errorScreenDaemon() {
     if (systemError[0] === true) {
-        let processesArray = systemError[1];
-        let i = systemError[2];
-        let error = systemError[3];
+        let process = systemError[1];
+        let error = systemError[2];
 
         if (this.init === undefined) {
-            for (var l = 0; l < processesArray.length; l++) {
-                processesArray[l].manualSuspend = true;
+            for (var i = 0; i < processes.length; i++) {
+                processes[i].manualSuspend = true;
             }
             this.init = true;
         }
         function returnSystem() {
-            for (var l = 0; l < processesArray.length; l++) {
-                processesArray[l].manualSuspend = false;
+            for (var i = 0; i < processes.length; i++) {
+                processes[i].manualSuspend = false;
             }
             systemError = [];
             this.init = undefined;
@@ -242,23 +271,40 @@ function errorScreenDaemon() {
         fill(0);
         text("Your system has encountered an error.", 10, height / 4);
         text("To ignore the error and continue to use the system, press [SPACE BAR].", 10, height / 3);
-        text("To kill the process in question and return to your system, press [Q].", 10, height / 2.7);
+        text("To kill the process and return to your system, press [Q].", 10, height / 2.7);
         text(error, 10, height / 1.5);
-        text("Process ID: " + processesArray[i].PID, 10, height / 1.2);
+        text("Process ID: " + process.PID, 10, height / 1.2);
         text("Check console for more details.", 10, height / 1.4);
         if (keyboardArray[81]) {
-            kill(processesArray[i].PID, processesArray);
+            kill(process.PID);
             returnSystem();
         } else if (keyboardArray[32]) {
-            processesArray[i].command();
+            process.command();
             returnSystem();
         }
     }
 }
 
-//System suspend shortcut
+//System suspend daemon. Responsible for inactivity suspend and keyboard shortcut.
+var mouseInactivityTimer = 0;
 function suspendResponseDaemon() {
-    if (keyboardArray[192] && !this.suspended) {
+    //Inactivity suspend
+    if(mouseArray.vectorX === 0 && mouseArray.vectorY === 0 && !keyIsPressed && !mouseIsPressed){
+        mouseInactivityTimer += systemLatency/1000;
+    }
+    if(focused){
+        mouseInactivityTimer = 0;
+        if(this.inactive === true){
+            resumeSystem(processes);
+            this.inactive = undefined;
+        }
+    }
+    if(mouseInactivityTimer > 30 && this.inactive === undefined || !focused && this.inactive === undefined){
+        suspendSystem(processes);
+        this.inactive = true;
+    }
+    //Suspend keyboard shortcut
+    if (keyboardArray[192] && this.suspended === undefined) {
         suspendSystem(processes);
         this.suspended = true;
     }
@@ -271,7 +317,7 @@ function suspendResponseDaemon() {
         text("Press any key to resume", width / 2 - textWidth("Press any key to resume") / 2, height / 2);
         if (keyIsPressed) {
             resumeSystem(processes);
-            this.suspended = false;
+            this.suspended = undefined;
             textSize(12);
         }
     }
@@ -298,21 +344,24 @@ function fpsCounter() {
 function setup() {
     if(limitFps === false){
         frameRate(Infinity);
-    }else{
+    }else if(limitFps === true){
         frameRate(monitorFramerate);
     }
-    createCanvas(windowWidth - 20, windowHeight - 20);
+    createCanvas(windowWidth - 20, windowHeight - 21);
 }
+addProcessGroup(processesGroup);
 function draw() {
     //Suspend hotkey daemon
     suspendResponseDaemon();
     //Inputs
-    UpdateKeyboard();
-    UpdateMouse();
+    updateKeyboard();
+    updateMouse();
     //Update performance numbers
     updatePerformanceIndicators();
+    //Run startup services
+    runStartups(startups);
     //Update processes
-    updateProcesses(processes);
+    updateSystem();
     //Error screen daemon
     errorScreenDaemon();
     //FPS display

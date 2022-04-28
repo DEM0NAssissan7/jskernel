@@ -115,16 +115,18 @@ function testInputs() {
   print("")
 }
 
+let processesBuffer;
 function stressReset() {
   print("Clearing processes.");
   processes = [];
-  print("Reinitializing TTY")
-  createProcess(updateTTY, "TTY", 0);
-  createProcess(drawTTY, "TTY", 1);
+  print("Reinitializing process tree")
+  processes = processesBuffer;
 }
 
 function stress() {
+  processesBuffer = processes;
   let testFailed = false;
+  var startTime = Date.now();
   try {
     schedulerResillience();
   } catch (error) {
@@ -178,7 +180,8 @@ function stress() {
   if (testFailed) {
     console.error("The jskernel stress test FAILED.");
   } else {
-    print("The jskernel stress test finished with no error!");
+    console.log("The jskernel stress test finished with no error!");
+    console.log("It took " + (Date.now() - startTime) + " milliseconds to run all of the stress tests.");
   }
-  print("Run -stressReset- to reset system back to original state.");
+  console.log("Run -stressReset- to reset system back to original state.");
 }

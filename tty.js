@@ -81,7 +81,7 @@ TTY.prototype.update = function () {
 
 TTY.prototype.draw = function () {
   noStroke();
-  fill(0, 0, 0, 100);
+  fill(0, 0, 0);
   rect(0, 0, width, height);
   fill(255, 255, 255);
   textSize(12);
